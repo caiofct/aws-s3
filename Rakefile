@@ -1,7 +1,6 @@
 require 'rubygems'
 require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
 require 'rake/packagetask'
 require 'rake/gempackagetask'
 
@@ -18,44 +17,6 @@ Rake::TestTask.new do |test|
   test.verbose = true
 end
 
-namespace :doc do
-  Rake::RDocTask.new do |rdoc|  
-    rdoc.rdoc_dir = 'doc'  
-    rdoc.title    = "AWS::S3 -- Support for Amazon S3's REST api"  
-    rdoc.options << '--line-numbers' << '--inline-source'
-    rdoc.rdoc_files.include('README')
-    rdoc.rdoc_files.include('COPYING')
-    rdoc.rdoc_files.include('INSTALL')    
-    rdoc.rdoc_files.include('lib/**/*.rb')
-  end
-  
-  task :rdoc => 'doc:readme'
-  
-  task :refresh => :rerdoc do
-    system 'open doc/index.html'
-  end
-
-  task :readme do
-    require 'support/rdoc/code_info'
-    RDoc::CodeInfo.parse('lib/**/*.rb')
-    
-    strip_comments = lambda {|comment| comment.gsub(/^# ?/, '')}
-    docs_for       = lambda do |location| 
-      info = RDoc::CodeInfo.for(location)
-      raise RuntimeError, "Couldn't find documentation for `#{location}'" unless info
-      strip_comments[info.comment]
-    end
-    
-    open('README', 'w') do |file|
-      file.write ERB.new(IO.read('README.erb')).result(binding)
-    end
-  end
-  
-  task :deploy => :rerdoc do
-    sh %(scp -r doc marcel@rubyforge.org:/var/www/gforge-projects/amazon/)
-  end
-end
-
 namespace :dist do  
   spec = Gem::Specification.new do |s|
     s.name              = 'aws-s3'
@@ -64,7 +25,7 @@ namespace :dist do
     s.description       = s.summary
     s.email             = 'marcel@vernix.org'
     s.author            = 'Marcel Molina Jr.'
-    s.has_rdoc          = true
+    s.has_rdoc          = false
     s.extra_rdoc_files  = %w(README COPYING INSTALL)
     s.homepage          = 'http://amazon.rubyforge.org'
     s.rubyforge_project = 'amazon'
@@ -75,9 +36,6 @@ namespace :dist do
     s.add_dependency 'xml-simple'
     s.add_dependency 'builder'
     s.add_dependency 'mime-types', '~> 2.5'
-    s.rdoc_options  = ['--title', "AWS::S3 -- Support for Amazon S3's REST api",
-                       '--main',  'README',
-                       '--line-numbers', '--inline-source']
     s.license = "MIT"
   end
     
@@ -293,8 +251,6 @@ end if File.exists?(File.join(library_root, 'TODO'))
 
 namespace :site do
   require 'erb'
-  require 'rdoc/markup/simple_markup'
-  require 'rdoc/markup/simple_markup/to_html'
   
   readme    = lambda { IO.read('README')[/^== Getting started\n(.*)/m, 1] }
 
@@ -332,4 +288,4 @@ namespace :site do
   end
 end 
 
-task :clean => ['dist:clobber_package', 'doc:clobber_rdoc', 'test:clobber_coverage']
+task :clean => ['dist:clobber_package', 'test:clobber_coverage']
